@@ -1,0 +1,85 @@
+# 스팸 판정 규칙
+#
+# 각 규칙의 조건이 모두 참이면 weight 가 점수에 더해진다. 합산 점수를 thresholds 와
+# 비교해 normal / suspicious / spam 등급이 정해진다.
+#
+# 사용 가능한 조건 (한 규칙 안에 여러 개를 쓰면 AND 로 묶인다)
+#   written_between:          { start: "YYYY-MM-DD HH:MM", end: "YYYY-MM-DD HH:MM" }  작성 시각 범위(한국시간)
+#   nickname_regex:           닉네임 정규식
+#   content_regex:            본문 정규식
+#   content_equals:           본문 완전 일치
+#   nickname_equals:          닉네임 완전 일치
+#   same_nickname_count_gte:  같은 닉네임의 총 작성 횟수가 N 이상
+#   comments_per_minute_gte:  같은 분에 작성된 댓글이 N건 이상
+#   is_secret:                비밀 댓글 여부 (true/false)
+#   is_reply:                 대댓글 여부 (true/false)
+#
+# 정규식은 파이썬 re 문법이며 대소문자 구분 없이 적용하려면 (?i) 를 앞에 붙인다.
+
+version: 1
+
+thresholds:
+  suspicious: 40   # 이 점수 이상이면 "의심"
+  spam: 70         # 이 점수 이상이면 "스팸"
+
+# 여기에 걸리면 점수와 무관하게 삭제 대상에서 제외된다.
+# 블로그 운영자 본인이 쓴 댓글은 코드에서 항상 자동 보호되므로 따로 적지 않아도 된다.
+whitelist:
+  nicknames: []
+  nickname_regex: []
+  comment_ids: []
+
+rules:
+  # 이 규칙의 시간대는 본인이 겪은 도배 시점으로 반드시 바꿔야 한다.
+  # 대시보드의 "시간대별 댓글 유입" 차트에서 급증 구간을 확인하면 된다.
+  # 시점을 모르겠다면 이 규칙을 지워도 나머지 규칙만으로 대부분 걸러진다.
+  - id: attack-window
+    description: 댓글 도배가 집중된 시간대
+    weight: 55
+    when:
+      written_between:
+        start: "2026-08-08 20:00"
+        end: "2026-08-08 23:59"
+
+  - id: injection-nickname
+    description: 닉네임에 SQL 인젝션 및 스크립트 공격 문자열이 포함됨
+    weight: 45
+    when:
+      nickname_regex: "(?i)(\\bselect\\b|\\bunion\\b|sleep\\s*\\(|pg_sleep|waitfor\\s+delay|benchmark\\s*\\(|dbms_pipe|\\bxor\\b|<script|javascript:|--\\s|/\\*|\\bor\\b\\s+\\d+\\s*=)"
+
+  # 이 규칙은 "이미 신고해서 티스토리가 본문을 지운" 댓글에만 걸린다.
+  # 신고 전이거나 다른 블로그에서는 본문이 그대로 남아 있으므로, 이것만 믿으면 안 된다.
+  # 아래 empty-content 규칙이 신고 전 상태를 담당한다.
+  - id: admin-deleted-body
+    description: 운영정책 위반으로 본문이 이미 관리자 삭제된 댓글
+    weight: 35
+    when:
+      content_equals: "운영정책 위배로 관리자 삭제되었습니다."
+
+  # 매크로는 닉네임에 공격 문자열을 넣고 본문은 비워 두는 경우가 많다.
+  # 신고 전에도 잡히는 규칙이라 실질적으로 admin-deleted-body 를 대체한다.
+  # 단독으로는 스팸이 되지 않게(40점) 두어, 본문 없이 공감만 누르고 간 실제
+  # 독자가 한 명 섞여도 삭제 대상이 되지 않는다.
+  - id: empty-content
+    description: 닉네임만 있고 본문이 비어 있는 댓글
+    weight: 40
+    when:
+      content_equals: ""
+
+  - id: nickname-burst
+    description: 같은 닉네임으로 10건 이상 반복 작성
+    weight: 30
+    when:
+      same_nickname_count_gte: 10
+
+  - id: minute-burst
+    description: 1분 안에 10건 이상 몰려 들어온 댓글
+    weight: 25
+    when:
+      comments_per_minute_gte: 10
+
+  - id: link-spam
+    description: 본문에 외부 링크가 반복적으로 포함됨
+    weight: 20
+    when:
+      content_regex: "(?i)(https?://[^\\s]+){2,}"
