@@ -1,0 +1,75 @@
+{# app/web/templates/login.html #}
+{#
+  로그인 화면. APP_AUTH_ENABLED=true 일 때만 사용한다.
+  사이드바가 없는 단독 레이아웃이라 base.html 을 상속하지 않는다.
+
+  백엔드가 넘겨야 하는 컨텍스트 변수
+    request  : Request  - url_for 사용에 필수
+    error    : str|None - 로그인 실패 메시지. 없으면 표시하지 않는다
+    username : str      - 실패 후 다시 채워 넣을 아이디 (선택)
+    next     : str      - 로그인 후 돌아갈 경로 (선택, 기본 '/')
+#}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>로그인 - 티스토리 댓글 정리</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}">
+</head>
+<body>
+<main class="app-auth-page">
+  <div class="app-auth-card">
+    <div class="app-auth-card__brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+           style="color:var(--app-primary)">
+        <path d="M13 2.5 4 6v6.2c0 5 3.7 9.2 9 11.3 5.3-2.1 9-6.3 9-11.3V6z"></path>
+        <path d="M9 12.6l2.7 2.7L17 9.8"></path>
+      </svg>
+      <span class="app-brand-text">
+        <span class="app-brand-name">티스토리 댓글 정리</span>
+        <span class="app-brand-sub">스팸 댓글 수집 · 분류 · 삭제</span>
+      </span>
+    </div>
+
+    <h1 class="app-page-title" style="font-size:18px">로그인</h1>
+    <p class="app-page-desc" style="margin-bottom:18px">
+      이 서비스는 블로그 세션 쿠키를 다루므로 인증이 켜져 있습니다.
+    </p>
+
+    {% if error|default('') %}
+    <div class="app-error-state" style="margin-bottom:14px">
+      <p class="app-error-state__title">로그인하지 못했습니다.</p>
+      <p class="app-error-state__desc">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <form class="app-auth-card__form" method="post" action="/login">
+      {% if next|default('') %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% endif %}
+
+      <div class="app-field">
+        <label class="app-field__label" for="app-login-username">아이디</label>
+        <input class="app-input" id="app-login-username" name="username" type="text"
+               value="{{ username|default('') }}" autocomplete="username" required autofocus>
+      </div>
+
+      <div class="app-field">
+        <label class="app-field__label" for="app-login-password">비밀번호</label>
+        <input class="app-input" id="app-login-password" name="password" type="password"
+               autocomplete="current-password" required>
+      </div>
+
+      <button class="app-btn app-btn--primary" type="submit" style="width:100%">로그인</button>
+    </form>
+
+    <p class="app-field__hint" style="margin-top:14px">
+      아이디와 비밀번호는 .env 파일의 APP_AUTH_USERNAME, APP_AUTH_PASSWORD 값입니다.
+    </p>
+  </div>
+</main>
+</body>
+</html>

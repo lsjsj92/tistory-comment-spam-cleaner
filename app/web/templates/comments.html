@@ -1,0 +1,173 @@
+{# app/web/templates/comments.html #}
+{#
+  댓글 관리. 필터, 선택, 삭제가 모두 이 화면에서 이루어진다.
+  comments.js 가 URL 질의 문자열을 읽어 필터 초기값을 채우므로
+  /comments?entry_ids=723&levels=spam 같은 링크로 바로 들어올 수 있다.
+
+  추가 컨텍스트 변수는 없다. 페이지 크기는 base.html 의 data-page-size 를 읽는다.
+#}
+{% extends "base.html" %}
+
+{% block title %}댓글 관리 - 티스토리 댓글 정리{% endblock %}
+{% block main_modifier %} app-main--pad-bottom{% endblock %}
+
+{% block content %}
+<div class="app-page-head">
+  <div class="app-page-head__text">
+    <h1 class="app-page-title">댓글 관리</h1>
+    <p class="app-page-desc">
+      조건으로 걸러낸 댓글을 선택해 백업하고 삭제합니다. 삭제는 되돌릴 수 없으므로 먼저 드라이런으로 확인하세요.
+    </p>
+  </div>
+  <div class="app-page-head__actions">
+    <button class="app-btn app-btn--secondary" type="button" id="app-rescore-btn">스팸 재분류</button>
+    <a class="app-btn app-btn--secondary" href="/jobs">작업 이력</a>
+  </div>
+</div>
+
+<div class="app-stack">
+  {# ---------------------------------------------------------------- 필터 #}
+  <section class="app-card" aria-label="댓글 필터">
+    <form id="app-filter-form">
+      <div class="app-stack app-stack--sm">
+        <div class="app-field">
+          <span class="app-field__label" id="app-entry-chips-label">게시글</span>
+          <div class="app-chips app-chips--scroll" id="app-entry-chips" role="group"
+               aria-labelledby="app-entry-chips-label">
+            <span class="app-muted-soft app-text-sm">게시글 목록을 불러오는 중입니다.</span>
+          </div>
+        </div>
+
+        <div class="app-filter-grid">
+          <div class="app-field">
+            <label class="app-field__label" for="app-filter-date-from">시작 시각</label>
+            <input class="app-input" id="app-filter-date-from" name="date_from" type="text"
+                   placeholder="YYYY-MM-DD HH:MM" autocomplete="off">
+          </div>
+          <div class="app-field">
+            <label class="app-field__label" for="app-filter-date-to">종료 시각</label>
+            <input class="app-input" id="app-filter-date-to" name="date_to" type="text"
+                   placeholder="YYYY-MM-DD HH:MM" autocomplete="off">
+          </div>
+          <div class="app-field">
+            <label class="app-field__label" for="app-filter-nickname">닉네임 검색</label>
+            <input class="app-input" id="app-filter-nickname" name="nickname" type="search"
+                   placeholder="부분 일치" autocomplete="off">
+          </div>
+          <div class="app-field">
+            <label class="app-field__label" for="app-filter-content">본문 검색</label>
+            <input class="app-input" id="app-filter-content" name="content" type="search"
+                   placeholder="부분 일치" autocomplete="off">
+          </div>
+          <div class="app-field">
+            <label class="app-field__label" for="app-filter-min-score">최소 스팸 점수</label>
+            <input class="app-input app-input--num" id="app-filter-min-score" name="min_score"
+                   type="number" min="0" step="1" placeholder="0" style="width:100%">
+          </div>
+        </div>
+
+        <div class="app-row" style="gap:20px">
+          <div class="app-field">
+            <span class="app-field__label" id="app-level-chips-label">스팸 등급</span>
+            <div class="app-chips" id="app-level-chips" role="group" aria-labelledby="app-level-chips-label">
+              <button class="app-chip" type="button" data-level="" aria-pressed="true">전체</button>
+              <button class="app-chip" type="button" data-level="spam" aria-pressed="false">스팸</button>
+              <button class="app-chip" type="button" data-level="suspicious" aria-pressed="false">의심</button>
+              <button class="app-chip" type="button" data-level="normal" aria-pressed="false">정상</button>
+            </div>
+          </div>
+
+          <div class="app-field">
+            <span class="app-field__label" id="app-status-chips-label">상태</span>
+            <div class="app-chips" id="app-status-chips" role="group" aria-labelledby="app-status-chips-label">
+              <button class="app-chip" type="button" data-status="active" aria-pressed="true">활성</button>
+              <button class="app-chip" type="button" data-status="deleted" aria-pressed="false">삭제됨</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-row">
+          <button class="app-btn app-btn--primary" type="submit" id="app-filter-apply">필터 적용</button>
+          <button class="app-btn app-btn--secondary" type="button" id="app-filter-reset">필터 초기화</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  {# ------------------------------------------------------- 작업 진행 상황 #}
+  <div id="app-comments-progress"></div>
+  <div id="app-comments-result"></div>
+
+  {# ---------------------------------------------------------------- 결과 #}
+  <section class="app-card app-card--flush" aria-label="댓글 목록">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title" id="app-result-count">댓글 목록</h2>
+        <p class="app-card__desc" id="app-result-summary">필터 조건에 맞는 댓글을 불러옵니다.</p>
+      </div>
+      <div class="app-card__actions">
+        <label class="app-check-label">
+          <input class="app-check" type="checkbox" id="app-select-page">
+          이 페이지 전체 선택
+        </label>
+        <button class="app-btn app-btn--secondary app-btn--sm" type="button" id="app-select-all-filtered">
+          필터 결과 전체 선택
+        </button>
+      </div>
+    </div>
+
+    <div class="app-table-wrap">
+      <table class="app-table app-table--wide">
+        <caption class="app-visually-hidden">필터 조건에 맞는 댓글 목록</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="app-table__check"><span class="app-visually-hidden">선택</span></th>
+            <th scope="col">닉네임</th>
+            <th scope="col">본문</th>
+            <th scope="col">작성 시각</th>
+            <th scope="col">게시글</th>
+            <th scope="col">스팸</th>
+            <th scope="col">상태</th>
+          </tr>
+        </thead>
+        <tbody id="app-comments-body"></tbody>
+      </table>
+    </div>
+
+    <div class="app-pager">
+      <span class="app-pager__info" id="app-pager-info">-</span>
+      <div class="app-pager__nav">
+        <button class="app-btn app-btn--secondary app-btn--sm" type="button" id="app-page-prev">이전</button>
+        <form class="app-pager__form" id="app-page-form">
+          <label class="app-visually-hidden" for="app-page-input">이동할 페이지 번호</label>
+          <input class="app-pager__input" id="app-page-input" type="number" min="1" step="1" value="1">
+          <span id="app-page-total">/ 1</span>
+          <button class="app-btn app-btn--secondary app-btn--sm" type="submit">이동</button>
+        </form>
+        <button class="app-btn app-btn--secondary app-btn--sm" type="button" id="app-page-next">다음</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+{# ------------------------------------------------------ 하단 고정 액션바 #}
+<div class="app-actionbar" id="app-actionbar" role="region" aria-label="선택한 댓글 처리">
+  <span class="app-actionbar__count" id="app-selected-count">선택 0건</span>
+  <button class="app-btn app-btn--link" type="button" id="app-clear-selection">선택 해제</button>
+  <span class="app-actionbar__hint" id="app-protected-hint"></span>
+  <div class="app-actionbar__spacer"></div>
+  <div class="app-actionbar__group">
+    <label class="app-switch" title="드라이런은 실제 삭제 요청을 보내지 않고 절차만 검증합니다.">
+      <input class="app-switch__input" type="checkbox" id="app-dry-run" checked>
+      <span class="app-switch__track"></span>
+      드라이런
+    </label>
+    <button class="app-btn app-btn--secondary" type="button" id="app-backup-btn">백업 내보내기</button>
+    <button class="app-btn app-btn--danger" type="button" id="app-delete-btn">선택 삭제</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', path='/js/comments.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,159 @@
+{# app/web/templates/base.html #}
+{#
+  공통 레이아웃. 모든 화면이 이 템플릿을 상속한다.
+
+  백엔드가 넘겨야 하는 컨텍스트 변수 (모두 기본값이 있어 누락되어도 렌더링은 된다)
+    request       : Request        - Starlette url_for 사용에 필수
+    active_page   : str            - 'dashboard' | 'targets' | 'comments' | 'jobs' | 'settings'
+    auth_state    : str            - AuthState 값 (unknown/missing/anonymous/not_owner/owner)
+    auth_message  : str            - 세션 진단 설명 문구
+    auth_enabled  : bool           - APP_AUTH_ENABLED. true 면 로그아웃 버튼 노출
+    blog_url      : str            - 대상 블로그 주소 (상단 우측 표시)
+    page_size     : int            - 목록 기본 페이지 크기 (APP_PAGE_SIZE)
+    app_version   : str            - 사이드바 하단 표시용 버전 문자열
+#}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}티스토리 댓글 정리{% endblock %}</title>
+  {# 외부 요청 없이 탭 아이콘을 채운다. 파일이 없으면 브라우저가 매번 404 를 남긴다. #}
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c5ce6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v6c0 4.4-3 8.3-7 9-4-0.7-7-4.6-7-9V6l7-3z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}">
+</head>
+{% set _state = auth_state|default('unknown') %}
+{% set _auth_labels = {
+  'owner': ('소유자 인증됨', 'app-badge--green'),
+  'not_owner': ('소유자 아님', 'app-badge--amber'),
+  'anonymous': ('로그인 필요', 'app-badge--amber'),
+  'missing': ('쿠키 미등록', 'app-badge--red'),
+  'unknown': ('세션 진단 필요', 'app-badge--gray')
+} %}
+{% set _auth_label, _auth_class = _auth_labels.get(_state, _auth_labels['unknown']) %}
+<body data-page="{{ active_page|default('') }}"
+      data-page-size="{{ page_size|default(50) }}"
+      data-blog-url="{{ blog_url|default('') }}"
+      data-auth-state="{{ _state }}">
+
+<a class="app-skip-link" href="#app-main">본문으로 건너뛰기</a>
+
+{% macro nav_icon(key) -%}
+<svg class="app-nav__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  {%- if key == 'dashboard' -%}
+  <rect x="2.5" y="2.5" width="6" height="6" rx="1.4"></rect>
+  <rect x="11.5" y="2.5" width="6" height="6" rx="1.4"></rect>
+  <rect x="2.5" y="11.5" width="6" height="6" rx="1.4"></rect>
+  <rect x="11.5" y="11.5" width="6" height="6" rx="1.4"></rect>
+  {%- elif key == 'targets' -%}
+  <path d="M4.5 2.5h7l4 4v11h-11z"></path>
+  <path d="M11.5 2.5v4h4"></path>
+  <path d="M7 10.5h6M7 13.5h6"></path>
+  {%- elif key == 'comments' -%}
+  <path d="M2.5 4.5h15v9h-9l-4 3.5v-3.5h-2z"></path>
+  <path d="M6 8h8M6 10.6h5"></path>
+  {%- elif key == 'jobs' -%}
+  <circle cx="10" cy="10" r="7.5"></circle>
+  <path d="M10 5.5V10l3 2"></path>
+  {%- elif key == 'settings' -%}
+  <path d="M3 5.5h14M3 10h14M3 14.5h14"></path>
+  <circle cx="7" cy="5.5" r="1.9"></circle>
+  <circle cx="13" cy="10" r="1.9"></circle>
+  <circle cx="8" cy="14.5" r="1.9"></circle>
+  {%- endif -%}
+</svg>
+{%- endmacro %}
+
+{% set _nav_menu = [
+  ('dashboard', '대시보드', '/'),
+  ('targets', '게시글 관리', '/targets'),
+  ('comments', '댓글 관리', '/comments')
+] %}
+{% set _nav_admin = [
+  ('jobs', '작업 이력', '/jobs'),
+  ('settings', '설정', '/settings')
+] %}
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <a class="app-sidebar__brand" href="/">
+      <svg class="app-brand-mark" width="26" height="26" viewBox="0 0 26 26" fill="none"
+           stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true">
+        <path d="M13 2.5 4 6v6.2c0 5 3.7 9.2 9 11.3 5.3-2.1 9-6.3 9-11.3V6z"></path>
+        <path d="M9 12.6l2.7 2.7L17 9.8"></path>
+      </svg>
+      <span class="app-brand-text">
+        <span class="app-brand-name">티스토리 댓글 정리</span>
+        <span class="app-brand-sub">스팸 댓글 수집 · 분류 · 삭제</span>
+      </span>
+    </a>
+
+    <nav class="app-nav" aria-label="주요 메뉴">
+      <p class="app-nav__label">메뉴</p>
+      {% for key, label, href in _nav_menu %}
+      <a class="app-nav__item{% if active_page|default('') == key %} app-nav__item--active{% endif %}"
+         href="{{ href }}"{% if active_page|default('') == key %} aria-current="page"{% endif %}
+         title="{{ label }}">
+        {{ nav_icon(key) }}<span class="app-nav__text">{{ label }}</span>
+      </a>
+      {% endfor %}
+
+      <p class="app-nav__label">관리</p>
+      {% for key, label, href in _nav_admin %}
+      <a class="app-nav__item{% if active_page|default('') == key %} app-nav__item--active{% endif %}"
+         href="{{ href }}"{% if active_page|default('') == key %} aria-current="page"{% endif %}
+         title="{{ label }}">
+        {{ nav_icon(key) }}<span class="app-nav__text">{{ label }}</span>
+      </a>
+      {% endfor %}
+    </nav>
+  </aside>
+
+  <div class="app-col">
+    <header class="app-topbar">
+      <form class="app-search" role="search" method="get" action="/comments">
+        <label class="app-visually-hidden" for="app-global-search">댓글 본문 검색</label>
+        <svg class="app-search__icon" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+             stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+          <circle cx="7" cy="7" r="4.6"></circle>
+          <path d="M10.5 10.5 14 14"></path>
+        </svg>
+        <input class="app-search__input" id="app-global-search" name="content" type="search"
+               placeholder="댓글 본문 검색" autocomplete="off">
+      </form>
+
+      <div class="app-topbar__right">
+        {% if blog_url|default('') %}
+        <span class="app-topbar__meta" title="{{ blog_url }}">{{ blog_url }}</span>
+        {% endif %}
+        <span class="app-badge {{ _auth_class }} app-badge--lg"
+              title="{{ auth_message|default('설정 화면에서 세션 진단을 실행하세요.') }}">
+          <span class="app-badge__dot"></span>{{ _auth_label }}
+        </span>
+        {% if auth_enabled|default(false) %}
+        <form method="post" action="/logout">
+          <button class="app-btn app-btn--secondary app-btn--sm" type="submit">로그아웃</button>
+        </form>
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="app-main{% block main_modifier %}{% endblock %}" id="app-main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+{# 토스트 알림 영역 #}
+<div class="app-toast-area" id="app-toast-area" role="status" aria-live="polite" aria-atomic="false"></div>
+
+{# 확인 모달 컨테이너. core.js 가 내부를 채운다 #}
+<div class="app-modal-root" id="app-modal-root" hidden></div>
+
+<script src="{{ url_for('static', path='/js/core.js') }}"></script>
+{% block page_scripts %}{% endblock %}
+</body>
+</html>

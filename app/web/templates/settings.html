@@ -1,0 +1,212 @@
+{# app/web/templates/settings.html #}
+{#
+  설정. 세션 쿠키 등록, 시험 삭제, 실행 설정 확인, 규칙 편집, 백업 목록을 담는다.
+  값은 settings.js 가 GET /api/settings 등으로 채운다. 추가 컨텍스트 변수는 없다.
+
+  주의: 쿠키 값은 어떤 경우에도 화면에 표시하지 않는다. 서버도 이름만 돌려준다.
+#}
+{% extends "base.html" %}
+
+{% block title %}설정 - 티스토리 댓글 정리{% endblock %}
+
+{% block content %}
+<div class="app-page-head">
+  <div class="app-page-head__text">
+    <h1 class="app-page-title">설정</h1>
+    <p class="app-page-desc">
+      블로그 소유자 세션을 등록하고, 삭제 전 점검과 스팸 규칙을 관리합니다.
+    </p>
+  </div>
+  <div class="app-page-head__actions">
+    <button class="app-btn app-btn--secondary" type="button" id="app-settings-refresh">새로 고침</button>
+  </div>
+</div>
+
+<div class="app-stack">
+  {# ------------------------------------------------------------ 세션 쿠키 #}
+  <section class="app-card" aria-label="세션 쿠키">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title">세션 쿠키</h2>
+        <p class="app-card__desc">
+          댓글 삭제에는 블로그 소유자의 로그인 세션이 필요합니다. 조회는 쿠키 없이도 동작합니다.
+        </p>
+      </div>
+      <div class="app-card__actions">
+        <span class="app-badge app-badge--gray app-badge--lg" id="app-auth-badge">진단 필요</span>
+      </div>
+    </div>
+
+    <div class="app-stack app-stack--sm">
+      <p class="app-muted app-text-sm" id="app-auth-message">세션 상태를 불러오는 중입니다.</p>
+
+      <div class="app-row">
+        <span class="app-field__label">등록된 쿠키</span>
+        <span id="app-cookie-names" class="app-muted-soft app-text-sm">없음</span>
+      </div>
+      <p class="app-field__hint">
+        보안을 위해 쿠키 이름만 표시합니다. 쿠키 값은 암호화해 저장하며 화면과 로그에 절대 출력하지 않습니다.
+      </p>
+
+      <div class="app-field">
+        <label class="app-field__label" for="app-cookie-raw">쿠키 입력</label>
+        <textarea class="app-textarea app-textarea--code" id="app-cookie-raw" rows="6"
+                  spellcheck="false" autocomplete="off"
+                  placeholder="curl 명령 전체, Cookie 헤더 값, name=value; name2=value2 형식 모두 인식합니다."></textarea>
+        <span class="app-field__hint">
+          붙여넣은 내용은 서버로 한 번 전송된 뒤 암호화되어 저장되며, 이 입력창은 등록 후 비워집니다.
+        </span>
+      </div>
+
+      <div class="app-row">
+        <button class="app-btn app-btn--primary" type="button" id="app-cookie-save">등록</button>
+        <button class="app-btn app-btn--secondary" type="button" id="app-cookie-browser">브라우저에서 자동 가져오기</button>
+        <button class="app-btn app-btn--secondary" type="button" id="app-cookie-diagnose">세션 진단</button>
+        <button class="app-btn app-btn--secondary" type="button" id="app-cookie-delete">쿠키 삭제</button>
+      </div>
+
+      <details class="app-details">
+        <summary class="app-details__summary">쿠키를 얻는 방법</summary>
+        <div class="app-details__body">
+          <p class="app-muted" style="margin-bottom:10px">
+            로그인한 상태에서 자기 블로그를 연 뒤 아래 순서를 따르세요. 브라우저마다 메뉴 이름만 조금 다릅니다.
+          </p>
+
+          <p class="app-field__label" style="margin-bottom:6px">Chrome, Edge</p>
+          <ol class="app-steps" style="margin-bottom:14px">
+            <li>블로그에 로그인한 상태에서 F12 키를 눌러 개발자도구를 엽니다.</li>
+            <li>Network 탭을 선택하고, 페이지를 새로 고칩니다.</li>
+            <li>목록에서 아무 요청이나 하나를 고릅니다. 블로그 주소로 시작하는 요청이면 됩니다.</li>
+            <li>그 요청을 마우스 오른쪽 버튼으로 누르고 Copy, Copy as cURL 을 차례로 선택합니다.</li>
+            <li>복사한 내용을 위 입력창에 그대로 붙여넣고 등록을 누릅니다.</li>
+          </ol>
+
+          <p class="app-field__label" style="margin-bottom:6px">Firefox</p>
+          <ol class="app-steps" style="margin-bottom:14px">
+            <li>F12 키를 눌러 개발자도구를 열고 네트워크 탭을 선택합니다.</li>
+            <li>페이지를 새로 고쳐 요청 목록을 채웁니다.</li>
+            <li>요청 하나를 오른쪽 버튼으로 누르고 값 복사, cURL로 복사를 선택합니다.</li>
+            <li>복사한 내용을 위 입력창에 붙여넣고 등록을 누릅니다.</li>
+          </ol>
+
+          <p class="app-muted app-text-sm">
+            브라우저에서 자동 가져오기 버튼을 쓰면 이 과정을 건너뛸 수 있습니다.
+            다만 브라우저가 쿠키 파일을 잠가 두면 실패할 수 있으므로, 실패하면 위 방법을 사용하세요.
+          </p>
+        </div>
+      </details>
+
+      <div id="app-cookie-result"></div>
+    </div>
+  </section>
+
+  {# --------------------------------------------------------- 1건 시험 삭제 #}
+  <section class="app-card" aria-label="1건 시험 삭제">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title">1건 시험 삭제</h2>
+        <p class="app-card__desc">
+          대량 삭제 전 반드시 1건으로 확인하세요. 삭제 응답의 형태를 검증해 실제 실행에서의 실패를 막습니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="app-stack app-stack--sm">
+      <p class="app-modal__warn" style="margin:0">
+        이 기능은 드라이런이 아닙니다. 입력한 댓글 1건이 블로그에서 실제로 삭제되며 되돌릴 수 없습니다.
+      </p>
+      <div class="app-inline-form">
+        <div class="app-field" style="flex:0 1 240px">
+          <label class="app-field__label" for="app-test-delete-id">댓글 번호</label>
+          <input class="app-input" id="app-test-delete-id" type="number" min="1" step="1"
+                 placeholder="23916088" autocomplete="off">
+          <span class="app-field__hint">댓글 관리 화면의 목록에서 대상 댓글 번호를 확인할 수 있습니다.</span>
+        </div>
+        <button class="app-btn app-btn--danger" type="button" id="app-test-delete-btn">시험 삭제 실행</button>
+      </div>
+      <div id="app-test-delete-result"></div>
+    </div>
+  </section>
+
+  {# ------------------------------------------------------------ 실행 설정 #}
+  <section class="app-card" aria-label="실행 설정">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title">실행 설정</h2>
+        <p class="app-card__desc">
+          이 값은 .env 파일에서 관리하며 변경하려면 서버를 다시 시작해야 합니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="app-stack app-stack--sm">
+      <div class="app-kv" id="app-runtime-kv">
+        <div class="app-kv__item">
+          <span class="app-kv__key">불러오는 중</span>
+          <span class="app-kv__val">-</span>
+        </div>
+      </div>
+
+      <div class="app-divider"></div>
+
+      <div class="app-stack app-stack--sm" id="app-paths"></div>
+    </div>
+  </section>
+
+  {# ------------------------------------------------------------ 규칙 편집 #}
+  <section class="app-card" aria-label="스팸 규칙">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title">스팸 규칙</h2>
+        <p class="app-card__desc">
+          rules.yaml 원문입니다. 저장하면 즉시 반영되며, 기존 댓글에 적용하려면 댓글 관리에서 스팸 재분류를 실행하세요.
+        </p>
+      </div>
+      <div class="app-card__actions">
+        <button class="app-btn app-btn--secondary app-btn--sm" type="button" id="app-rules-reload">되돌리기</button>
+        <button class="app-btn app-btn--primary app-btn--sm" type="button" id="app-rules-save">저장</button>
+      </div>
+    </div>
+
+    <div class="app-stack app-stack--sm">
+      <div class="app-field">
+        <label class="app-visually-hidden" for="app-rules-yaml">규칙 YAML 원문</label>
+        <textarea class="app-textarea app-textarea--code" id="app-rules-yaml" rows="24"
+                  spellcheck="false" wrap="off" autocomplete="off"></textarea>
+      </div>
+      <div id="app-rules-result"></div>
+    </div>
+  </section>
+
+  {# ------------------------------------------------------------ 백업 목록 #}
+  <section class="app-card app-card--flush" aria-label="백업 파일">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title">백업 파일</h2>
+        <p class="app-card__desc" id="app-backups-summary">삭제 전에 생성된 백업 파일 목록입니다.</p>
+      </div>
+      <div class="app-card__actions">
+        <button class="app-btn app-btn--secondary app-btn--sm" type="button" id="app-backups-refresh">목록 새로 고침</button>
+      </div>
+    </div>
+    <div class="app-table-wrap">
+      <table class="app-table">
+        <caption class="app-visually-hidden">생성된 백업 파일 목록</caption>
+        <thead>
+          <tr>
+            <th scope="col">파일 이름</th>
+            <th scope="col" class="app-num">크기</th>
+            <th scope="col">생성 시각</th>
+            <th scope="col"><span class="app-visually-hidden">내려받기</span></th>
+          </tr>
+        </thead>
+        <tbody id="app-backups-body"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', path='/js/settings.js') }}"></script>
+{% endblock %}

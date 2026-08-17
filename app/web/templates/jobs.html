@@ -1,0 +1,87 @@
+{# app/web/templates/jobs.html #}
+{#
+  작업 이력. 목록과 상세는 jobs.js 가 API 로 채운다.
+  추가 컨텍스트 변수는 없다.
+#}
+{% extends "base.html" %}
+
+{% block title %}작업 이력 - 티스토리 댓글 정리{% endblock %}
+
+{% block content %}
+<div class="app-page-head">
+  <div class="app-page-head__text">
+    <h1 class="app-page-title">작업 이력</h1>
+    <p class="app-page-desc">
+      수집과 삭제 작업의 진행 상황과 결과를 확인합니다. 실행 중인 작업은 자동으로 갱신됩니다.
+    </p>
+  </div>
+  <div class="app-page-head__actions">
+    <button class="app-btn app-btn--secondary" type="button" id="app-jobs-refresh">새로 고침</button>
+  </div>
+</div>
+
+<div class="app-stack">
+  <section class="app-card app-card--flush" aria-label="작업 목록">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title">작업 목록</h2>
+        <p class="app-card__desc" id="app-jobs-summary">불러오는 중입니다.</p>
+      </div>
+      <div class="app-card__actions">
+        <div class="app-chips" id="app-job-type-chips" role="group" aria-label="작업 종류 필터">
+          <button class="app-chip" type="button" data-type="" aria-pressed="true">전체</button>
+          <button class="app-chip" type="button" data-type="collect" aria-pressed="false">댓글 수집</button>
+          <button class="app-chip" type="button" data-type="delete" aria-pressed="false">댓글 삭제</button>
+          <button class="app-chip" type="button" data-type="discover" aria-pressed="false">게시글 탐색</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-table-wrap">
+      <table class="app-table app-table--wide">
+        <caption class="app-visually-hidden">실행된 작업 목록</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="app-num">번호</th>
+            <th scope="col">종류</th>
+            <th scope="col">상태</th>
+            <th scope="col">진행률</th>
+            <th scope="col" class="app-num">성공</th>
+            <th scope="col" class="app-num">실패</th>
+            <th scope="col" class="app-num">건너뜀</th>
+            <th scope="col">생성</th>
+            <th scope="col">시작</th>
+            <th scope="col">종료</th>
+            <th scope="col">백업</th>
+          </tr>
+        </thead>
+        <tbody id="app-jobs-body"></tbody>
+      </table>
+    </div>
+
+    <div class="app-pager">
+      <span class="app-pager__info" id="app-jobs-pager-info">-</span>
+      <div class="app-pager__nav">
+        <button class="app-btn app-btn--secondary app-btn--sm" type="button" id="app-jobs-prev">이전</button>
+        <button class="app-btn app-btn--secondary app-btn--sm" type="button" id="app-jobs-next">다음</button>
+      </div>
+    </div>
+  </section>
+
+  {# 상세 패널. 행을 고르면 표시된다 #}
+  <section class="app-card app-hidden" id="app-job-detail" aria-label="작업 상세" tabindex="-1">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title" id="app-job-detail-title">작업 상세</h2>
+        <p class="app-card__desc" id="app-job-detail-desc"></p>
+      </div>
+      <div class="app-card__actions" id="app-job-detail-actions"></div>
+    </div>
+    <div id="app-job-detail-body"></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', path='/js/jobs.js') }}"></script>
+{% endblock %}

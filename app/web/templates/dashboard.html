@@ -1,0 +1,155 @@
+{# app/web/templates/dashboard.html #}
+{#
+  대시보드. 모든 수치는 GET /api/stats/overview 응답으로 dashboard.js 가 채운다.
+  추가 컨텍스트 변수는 없다. base.html 의 변수만 있으면 렌더링된다.
+#}
+{% extends "base.html" %}
+
+{% block title %}대시보드 - 티스토리 댓글 정리{% endblock %}
+
+{% block content %}
+<div class="app-page-head">
+  <div class="app-page-head__text">
+    <h1 class="app-page-title">대시보드</h1>
+    <p class="app-page-desc">수집한 댓글의 규모와 공격이 집중된 시간대를 한눈에 확인합니다.</p>
+  </div>
+  <div class="app-page-head__actions">
+    <button class="app-btn app-btn--secondary" type="button" id="app-dash-refresh">새로 고침</button>
+    <a class="app-btn app-btn--primary" href="/comments">댓글 관리로 이동</a>
+  </div>
+</div>
+
+<div class="app-stack">
+  {# 실행 중 작업 알림. dashboard.js 가 running_jobs 값에 따라 노출한다 #}
+  <div class="app-banner app-hidden" id="app-dash-running">
+    <span id="app-dash-running-text">실행 중인 작업이 있습니다.</span>
+    <span class="app-banner__spacer"></span>
+    <a class="app-btn app-btn--secondary app-btn--sm" href="/jobs">작업 이력 보기</a>
+  </div>
+
+  {# 오류 상태 자리 #}
+  <div id="app-dash-error"></div>
+
+  {# 스탯 타일 6개 #}
+  <section aria-label="수집 요약">
+    <div class="app-grid app-grid--stats" id="app-dash-stats">
+      <div class="app-stat">
+        <div class="app-stat__top">
+          <span class="app-stat__label">총 수집 댓글</span>
+          <span class="app-stat__value" data-stat="total">0<span class="app-stat__unit">건</span></span>
+        </div>
+        <p class="app-stat__caption">등록된 게시글에서 수집해 저장한 전체 댓글</p>
+      </div>
+      <div class="app-stat">
+        <div class="app-stat__top">
+          <span class="app-stat__label">스팸 판정</span>
+          <span class="app-stat__value app-stat__value--danger" data-stat="spam">0<span class="app-stat__unit">건</span></span>
+        </div>
+        <p class="app-stat__caption">규칙 점수가 스팸 기준을 넘은 댓글</p>
+      </div>
+      <div class="app-stat">
+        <div class="app-stat__top">
+          <span class="app-stat__label">의심</span>
+          <span class="app-stat__value app-stat__value--warn" data-stat="suspicious">0<span class="app-stat__unit">건</span></span>
+        </div>
+        <p class="app-stat__caption">삭제 전에 눈으로 확인이 필요한 댓글</p>
+      </div>
+      <div class="app-stat">
+        <div class="app-stat__top">
+          <span class="app-stat__label">삭제 완료</span>
+          <span class="app-stat__value app-stat__value--success" data-stat="deleted">0<span class="app-stat__unit">건</span></span>
+        </div>
+        <p class="app-stat__caption">삭제 요청이 성공해 블로그에서 사라진 댓글</p>
+      </div>
+      <div class="app-stat">
+        <div class="app-stat__top">
+          <span class="app-stat__label">삭제 실패</span>
+          <span class="app-stat__value" data-stat="failed">0<span class="app-stat__unit">건</span></span>
+        </div>
+        <p class="app-stat__caption">재시도가 필요한 댓글. 작업 이력에서 사유를 확인하세요</p>
+      </div>
+      <div class="app-stat">
+        <div class="app-stat__top">
+          <span class="app-stat__label">등록 게시글</span>
+          <span class="app-stat__value" data-stat="targets">0<span class="app-stat__unit">개</span></span>
+        </div>
+        <p class="app-stat__caption">수집 대상으로 등록된 게시글 수</p>
+      </div>
+    </div>
+  </section>
+
+  {# 비어 있을 때만 보이는 안내 #}
+  <section class="app-card app-hidden" id="app-dash-empty" aria-label="수집 데이터 없음">
+    <div class="app-empty">
+      <p class="app-empty__title">아직 수집된 댓글이 없습니다.</p>
+      <p class="app-empty__desc">
+        게시글 관리 화면에서 대상 게시글을 등록하고 수집을 실행하면 여기에 통계가 표시됩니다.
+        블로그 주소 전체를 훑으려면 sitemap 전체 스캔을 사용하세요.
+      </p>
+      <div class="app-empty__action">
+        <a class="app-btn app-btn--primary" href="/targets">게시글 관리로 이동</a>
+      </div>
+    </div>
+  </section>
+
+  {# 차트 영역 #}
+  <section class="app-grid app-grid--2" id="app-dash-charts">
+    <div class="app-card">
+      <div class="app-card__head">
+        <div>
+          <h2 class="app-card__title">시간대별 댓글 유입</h2>
+          <p class="app-card__desc">막대에 마우스를 올리면 해당 구간의 정확한 건수를 볼 수 있습니다.</p>
+        </div>
+      </div>
+      <div id="app-dash-histogram" style="min-height:240px"></div>
+    </div>
+
+    <div class="app-card">
+      <div class="app-card__head">
+        <div>
+          <h2 class="app-card__title">상위 작성자</h2>
+          <p class="app-card__desc">같은 닉네임으로 반복 작성된 상위 항목입니다.</p>
+        </div>
+      </div>
+      <div id="app-dash-nicknames" style="min-height:200px"></div>
+    </div>
+  </section>
+
+  {# 게시글별 현황 #}
+  <section class="app-card app-card--flush">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title">게시글별 현황</h2>
+        <p class="app-card__desc">게시글마다 남아 있는 댓글과 처리 상태를 확인합니다.</p>
+      </div>
+      <div class="app-card__actions">
+        <a class="app-btn app-btn--secondary app-btn--sm" href="/targets">게시글 관리</a>
+      </div>
+    </div>
+    <div class="app-table-wrap">
+      <table class="app-table app-table--wide">
+        <caption class="app-visually-hidden">게시글별 댓글 수집 및 처리 현황</caption>
+        <thead>
+          <tr>
+            <th scope="col">게시글</th>
+            <th scope="col" class="app-num">총</th>
+            <th scope="col" class="app-num">활성</th>
+            <th scope="col" class="app-num">삭제</th>
+            <th scope="col" class="app-num">스팸</th>
+            <th scope="col" class="app-num">의심</th>
+            <th scope="col">최초 작성</th>
+            <th scope="col">최종 작성</th>
+            <th scope="col"><span class="app-visually-hidden">바로 가기</span></th>
+          </tr>
+        </thead>
+        <tbody id="app-dash-targets"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', path='/js/chart.js') }}"></script>
+<script src="{{ url_for('static', path='/js/dashboard.js') }}"></script>
+{% endblock %}

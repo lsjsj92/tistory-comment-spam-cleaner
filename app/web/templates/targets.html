@@ -1,0 +1,94 @@
+{# app/web/templates/targets.html #}
+{#
+  게시글 관리. 목록과 동작은 targets.js 가 API 로 처리한다.
+  추가 컨텍스트 변수는 없다.
+#}
+{% extends "base.html" %}
+
+{% block title %}게시글 관리 - 티스토리 댓글 정리{% endblock %}
+
+{% block content %}
+<div class="app-page-head">
+  <div class="app-page-head__text">
+    <h1 class="app-page-title">게시글 관리</h1>
+    <p class="app-page-desc">댓글을 수집할 게시글을 등록하고, 게시글 단위로 수집을 실행합니다.</p>
+  </div>
+  <div class="app-page-head__actions">
+    <button class="app-btn app-btn--secondary" type="button" id="app-targets-refresh">새로 고침</button>
+    <button class="app-btn app-btn--secondary" type="button" id="app-targets-discover">sitemap 전체 스캔</button>
+  </div>
+</div>
+
+<div class="app-stack">
+  {# 추가와 수집 실행 #}
+  <section class="app-card" aria-label="게시글 등록과 수집 실행">
+    <div class="app-stack app-stack--sm">
+      <form class="app-inline-form" id="app-target-add-form">
+        <div class="app-field" style="flex:2 1 320px">
+          <label class="app-field__label" for="app-target-input">게시글 주소 또는 글번호</label>
+          <input class="app-input" id="app-target-input" name="url_or_id" type="text"
+                 placeholder="https://blog.tistory.com/723 또는 723" autocomplete="off" required>
+          <span class="app-field__hint">주소 전체를 붙여넣거나 숫자 글번호만 입력해도 됩니다.</span>
+        </div>
+        <button class="app-btn app-btn--primary" type="submit" id="app-target-add-btn">추가</button>
+      </form>
+
+      <div class="app-divider"></div>
+
+      <div class="app-inline-form">
+        <div class="app-field" style="flex:0 1 260px">
+          <label class="app-field__label" for="app-collect-since">수집 시작 시각 (선택)</label>
+          <input class="app-input" id="app-collect-since" type="text"
+                 placeholder="YYYY-MM-DD HH:MM" autocomplete="off">
+          <span class="app-field__hint">
+            비워 두면 전체를 수집합니다. 값을 넣으면 그 시각보다 과거로 내려간 시점에 수집을 멈춥니다.
+          </span>
+        </div>
+        <button class="app-btn app-btn--primary" type="button" id="app-collect-btn">선택 게시글 수집</button>
+        <span class="app-field__hint" id="app-collect-hint">선택한 게시글이 없으면 활성 게시글 전체를 수집합니다.</span>
+      </div>
+
+      <div id="app-targets-progress"></div>
+    </div>
+  </section>
+
+  {# 대상 목록 #}
+  <section class="app-card app-card--flush" aria-label="등록된 게시글 목록">
+    <div class="app-card__head">
+      <div>
+        <h2 class="app-card__title">등록된 게시글</h2>
+        <p class="app-card__desc" id="app-targets-count">불러오는 중입니다.</p>
+      </div>
+      <div class="app-card__actions">
+        <label class="app-check-label">
+          <input class="app-check" type="checkbox" id="app-targets-select-all">
+          전체 선택
+        </label>
+      </div>
+    </div>
+    <div class="app-table-wrap">
+      <table class="app-table app-table--wide">
+        <caption class="app-visually-hidden">수집 대상으로 등록된 게시글 목록</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="app-table__check"><span class="app-visually-hidden">선택</span></th>
+            <th scope="col" class="app-num">글번호</th>
+            <th scope="col">제목</th>
+            <th scope="col">주소</th>
+            <th scope="col" class="app-num">댓글 수</th>
+            <th scope="col">마지막 수집</th>
+            <th scope="col">출처</th>
+            <th scope="col">활성</th>
+            <th scope="col"><span class="app-visually-hidden">동작</span></th>
+          </tr>
+        </thead>
+        <tbody id="app-targets-body"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', path='/js/targets.js') }}"></script>
+{% endblock %}
