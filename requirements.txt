@@ -1,0 +1,20 @@
+# 실행에 필요한 최소 의존성 (Python 3.9 이상)
+# 컴파일러가 필요한 패키지를 넣지 않아 Windows/Ubuntu 모두 휠 설치로 끝난다.
+# 3.9 를 지원하려고 타입 표기에 typing.Optional/Union 을 쓴다. PEP 604 문법(X | None)은
+# 3.9 의 SQLAlchemy/pydantic/FastAPI 가 런타임에 해석하지 못한다.
+
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+httpx>=0.27,<1.0
+pydantic>=2.7,<3.0
+pydantic-settings>=2.3,<3.0
+SQLAlchemy>=2.0,<3.0
+aiosqlite>=0.20,<1.0
+greenlet>=3.0
+Jinja2>=3.1,<4.0
+python-multipart>=0.0.9
+PyYAML>=6.0,<7.0
+beautifulsoup4>=4.12,<5.0
+cryptography>=42.0
+itsdangerous>=2.2,<3.0
+tzdata>=2024.1
