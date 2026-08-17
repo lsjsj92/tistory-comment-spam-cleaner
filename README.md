@@ -29,8 +29,8 @@
 댓글 닉네임에는 `PG_SLEEP`, `waitfor delay`, `sleep()` 등 SQL Injection 취약점 확인에 사용되는 문자열이 반복해서 포함되어 있었습니다. 일반적인 광고성 댓글이라기보다 자동화된 스캐너가 댓글 입력창을 대상으로 요청을 반복한 형태로 보였습니다.
 
 <p align="center">
-  <img src="asset/spam-admin-comments.PNG" width="48%" alt="티스토리 관리자 화면에 쌓인 도배 댓글">
-  <img src="asset/spam-public-comments.PNG" width="48%" alt="블로그 댓글 영역에 반복 등록된 댓글">
+  <img src="asset/spam-admin-comments.png" width="48%" alt="티스토리 관리자 화면에 쌓인 도배 댓글">
+  <img src="asset/spam-public-comments.png" width="48%" alt="블로그 댓글 영역에 반복 등록된 댓글">
 </p>
 
 문제는 댓글을 정리하는 과정이었습니다. 티스토리 관리 화면에서는 수천 건의 댓글을 하나씩 처리해야 했고, 신고 처리된 댓글도 `운영정책 위배로 관리자 삭제되었습니다.`라는 문구로 바뀔 뿐 댓글 항목 자체는 그대로 남아 있었습니다.
@@ -60,7 +60,7 @@ http://127.0.0.1:8765
 `sitemap.xml`을 이용하면 블로그 전체 게시글을 탐색할 수 있기 때문에, 사용자가 미처 확인하지 못한 과거 게시글의 도배 댓글도 함께 찾을 수 있습니다.
 
 <p align="center">
-  <img src="asset/main-monitoring.PNG" width="100%" alt="게시글별 댓글 모니터링 화면">
+  <img src="asset/main-monitoring.png" width="100%" alt="게시글별 댓글 모니터링 화면">
 </p>
 
 ### 삭제 확인
@@ -70,7 +70,7 @@ http://127.0.0.1:8765
 삭제 대상 수와 스팸/의심/정상 댓글 수를 먼저 보여주며, 사용자가 `삭제`라는 문구를 직접 입력해야 실제 삭제 버튼이 활성화됩니다. 삭제 직전에는 대상 댓글을 JSON과 CSV로 백업합니다.
 
 <p align="center">
-  <img src="asset/delete-confirmation.PNG" width="60%" alt="대량 댓글 삭제 전 최종 확인 화면">
+  <img src="asset/delete-confirmation.png" width="60%" alt="대량 댓글 삭제 전 최종 확인 화면">
 </p>
 
 삭제가 시작되면 성공/실패/남은 건수와 진행률을 화면에서 확인할 수 있습니다. 작업이 끝난 뒤에는 댓글을 다시 조회해 실제로 삭제되었는지도 확인합니다.
@@ -217,15 +217,15 @@ APP_BLOG_URL=https://내블로그.tistory.com
 3. `Network` 탭에서 페이지를 새로고침합니다.
 4. 본인 블로그 주소로 시작하는 요청을 선택합니다.
 <p align="center">
-  <img src="asset/f12-network-check.PNG" width="48%" alt="개발자도구 네트워크 정보">
+  <img src="asset/f12-network-check.png" width="48%" alt="개발자도구 네트워크 정보">
 </p>
 5. 우클릭 후 `Copy` → `Copy as cURL`을 선택합니다.
 <p align="center">
-  <img src="asset/copy-curl-1.PNG" width="48%" alt="cURL 복사">
+  <img src="asset/copy-curl-1.png" width="48%" alt="cURL 복사">
 </p>
 6. 서비스의 `설정` 화면에서 쿠키 등록 영역에 그대로 붙여넣습니다.
 <p align="center">
-  <img src="asset/copy-curl-2.PNG" width="48%" alt="cURL 붙여넣기">
+  <img src="asset/copy-curl-2.png" width="48%" alt="cURL 붙여넣기">
 </p>
 7. `소유자 인증됨` 상태가 표시되는지 확인합니다.
 
@@ -250,7 +250,7 @@ APP_BLOG_URL=https://내블로그.tistory.com
 ## 사용 방법
 
 <p align="center">
-  <img src="asset/delete-process.PNG" width="48%" alt="삭제 진행 중">
+  <img src="asset/delete-process.png" width="48%" alt="삭제 진행 중">
 </p>
 
 ### 1. 게시글 등록
